@@ -92,8 +92,19 @@ jobs:
         shell: bash
         run: |
           go mod tidy
-          go build -o ./apimain ./cmd/apimain.go
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o ./apimain ./cmd/apimain.go
           ./apimain -h >/dev/null
+
+      - name: Prepare docker release layout
+        shell: bash
+        run: |
+          mkdir -p amd64/release
+          cp ./apimain amd64/release/apimain
+          chmod +x amd64/release/apimain
+          cp -ar conf amd64/release/
+          cp -ar resources amd64/release/
+          cp -ar docs amd64/release/
+          mkdir -p amd64/release/data amd64/release/runtime
 
       - name: Optional Go tests (skip lib/cache integration tests)
         if: ${{ inputs.run_go_tests }}
@@ -119,6 +130,8 @@ jobs:
           context: .
           file: ./Dockerfile
           tags: local/rustdesk-api:${{ github.run_id }}
+          build-args: |
+            BUILDARCH=amd64
           load: true
           push: false
 
@@ -146,5 +159,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
+          build-args: |
+            BUILDARCH=amd64
           tags: ${{ steps.resolve.outputs.image_name }}:${{ inputs.image_tag }}
           push: true
