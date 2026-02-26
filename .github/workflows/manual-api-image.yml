@@ -88,11 +88,17 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
+      - name: Setup musl toolchain for sqlite cgo
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+
       - name: Build API binary
         shell: bash
         run: |
           go mod tidy
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o ./apimain ./cmd/apimain.go
+          CC=x86_64-linux-musl-gcc CGO_ENABLED=1 CGO_LDFLAGS="-static" GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o ./apimain ./cmd/apimain.go
           ./apimain -h >/dev/null
 
       - name: Prepare docker release layout
