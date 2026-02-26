@@ -23,7 +23,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const DatabaseVersion = 265
+const DatabaseVersion = 266
 
 // @title 管理系统API
 // @version 1.0
@@ -283,6 +283,9 @@ func DatabaseAutoUpdate() {
 		if v.Version < 246 {
 			db.Exec("update oauths set issuer = 'https://accounts.google.com' where op = 'google' and issuer is null")
 		}
+		if v.Version < 266 {
+			db.Exec("update users set max_devices = 1 where max_devices <= 0")
+		}
 	}
 
 }
@@ -341,6 +344,7 @@ func Migrate(version uint) {
 			Status:   model.COMMON_STATUS_ENABLE,
 			IsAdmin:  &is_admin,
 			GroupId:  1,
+			MaxDevices: 1,
 		}
 
 		// 生成随机密码

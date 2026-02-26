@@ -86,14 +86,19 @@ func (ct *Login) Login(c *gin.Context) {
 		return
 	}
 
-	ut := service.AllService.UserService.Login(u, &model.LoginLog{
+	ut, loginErr := service.AllService.UserService.Login(u, &model.LoginLog{
 		UserId:   u.Id,
 		Client:   model.LoginLogClientWebAdmin,
+		DeviceId: fmt.Sprintf("%s|%s|%s", f.Platform, clientIp, c.Request.UserAgent()),
 		Uuid:     "", //must be empty
 		Ip:       clientIp,
 		Type:     model.LoginLogTypeAccount,
 		Platform: f.Platform,
 	})
+	if loginErr != nil {
+		response.Fail(c, 101, response.TranslateMsg(c, loginErr.Error()))
+		return
+	}
 
 	// 登录成功，清除登录限制
 	loginLimiter.RemoveAttempts(clientIp)
