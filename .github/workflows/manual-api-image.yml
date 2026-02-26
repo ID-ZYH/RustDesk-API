@@ -58,8 +58,31 @@ jobs:
           else
             IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/rustdesk-api"
           fi
+          IMAGE_NAME=$(echo "${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')
+          if [ -z "${IMAGE_NAME}" ]; then
+            echo "image_name is empty after normalization"
+            exit 1
+          fi
           echo "web_repo=${WEB_REPO}" >> "$GITHUB_OUTPUT"
           echo "image_name=${IMAGE_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Print resolved image target
+        shell: bash
+        run: |
+          echo "Final image: ${{ steps.resolve.outputs.image_name }}:${{ inputs.image_tag }}"
+
+      - name: Validate image tag
+        shell: bash
+        run: |
+          TAG="${{ inputs.image_tag }}"
+          if [ -z "${TAG}" ]; then
+            echo "image_tag cannot be empty"
+            exit 1
+          fi
+          if [[ "${TAG}" =~ [[:space:]] ]]; then
+            echo "image_tag cannot contain spaces"
+            exit 1
+          fi
 
       - name: Checkout web admin repository
         uses: actions/checkout@v4
