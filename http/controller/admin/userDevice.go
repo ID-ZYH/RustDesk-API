@@ -7,7 +7,6 @@ import (
 	"github.com/lejianwen/rustdesk-api/v2/http/response"
 	"github.com/lejianwen/rustdesk-api/v2/model"
 	"github.com/lejianwen/rustdesk-api/v2/service"
-	"gorm.io/gorm"
 )
 
 type UserDevice struct{}
@@ -19,52 +18,53 @@ func (ct *UserDevice) List(c *gin.Context) {
 		return
 	}
 
-	res := service.AllService.UserService.TokenList(query.Page, query.PageSize, func(tx *gorm.DB) {
-		if query.UserId > 0 {
-			tx.Where("user_id = ?", query.UserId)
+	items, total := service.AllService.UserService.UserDeviceList(query.Page, query.PageSize, query.UserId, query.Username)
+	userIDs := make([]uint, 0)
+	seen := make(map[uint]struct{})
+	for _, item := range items {
+		if _, ok := seen[item.UserId]; ok {
+			continue
 		}
-		tx.Order("id desc")
-	})
+		seen[item.UserId] = struct{}{}
+		userIDs = append(userIDs, item.UserId)
+	}
+	users := service.AllService.UserService.ListByIds(userIDs)
+	userMap := make(map[uint]*model.User)
+	for _, u := range users {
+		userMap[u.Id] = u
+	}
 
-	items := make([]gin.H, 0, len(res.UserTokens))
-	if len(res.UserTokens) > 0 {
-		ids := make([]uint, 0, len(res.UserTokens))
-		for _, token := range res.UserTokens {
-			ids = append(ids, token.Id)
+	res := make([]gin.H, 0, len(items))
+	for _, item := range items {
+		u := userMap[item.UserId]
+		maxDevices := 1
+		username := ""
+		if u != nil {
+			maxDevices = u.MaxDevices
+			username = u.Username
 		}
-		logs := make([]model.LoginLog, 0)
-		global.DB.Where("user_token_id in ?", ids).Order("id desc").Find(&logs)
-		logMap := make(map[uint]model.LoginLog)
-		for _, logItem := range logs {
-			if _, ok := logMap[logItem.UserTokenId]; !ok {
-				logMap[logItem.UserTokenId] = logItem
-			}
-		}
-
-		for _, token := range res.UserTokens {
-			logItem := logMap[token.Id]
-			items = append(items, gin.H{
-				"id":          token.Id,
-				"user_id":     token.UserId,
-				"device_uuid": token.DeviceUuid,
-				"device_id":   token.DeviceId,
-				"token":       token.Token,
-				"expired_at":  token.ExpiredAt,
-				"created_at":  token.CreatedAt,
-				"updated_at":  token.UpdatedAt,
-				"client":      logItem.Client,
-				"platform":    logItem.Platform,
-				"ip":          logItem.Ip,
-				"login_at":    logItem.CreatedAt,
-			})
-		}
+		res = append(res, gin.H{
+			"id":             item.Id,
+			"user_id":        item.UserId,
+			"username":       username,
+			"max_devices":    maxDevices,
+			"uuid":           item.Uuid,
+			"device_id":      item.DeviceId,
+			"platform":       item.Platform,
+			"ip":             item.Ip,
+			"status":         item.Status,
+			"first_login_at": item.FirstLoginAt,
+			"last_login_at":  item.LastLoginAt,
+			"created_at":     item.CreatedAt,
+			"updated_at":     item.UpdatedAt,
+		})
 	}
 
 	response.Success(c, gin.H{
-		"list":      items,
-		"total":     res.Total,
-		"page":      res.Page,
-		"page_size": res.PageSize,
+		"list":      res,
+		"total":     total,
+		"page":      query.Page,
+		"page_size": query.PageSize,
 	})
 }
 
@@ -86,15 +86,16 @@ func (ct *UserDevice) SetLimit(c *gin.Context) {
 		return
 	}
 
-	u.MaxDevices = f.MaxDevices
-	if err := global.DB.Model(u).Update("max_devices", f.MaxDevices).Error; err != nil {
+	normalized := service.AllService.UserService.NormalizeMaxDevicesForAdminApi(u, f.MaxDevices)
+	u.MaxDevices = normalized
+	if err := global.DB.Model(u).Update("max_devices", normalized).Error; err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
 	}
 
 	response.Success(c, gin.H{
 		"user_id":     u.Id,
-		"max_devices": f.MaxDevices,
+		"max_devices": u.MaxDevices,
 	})
 }
 
@@ -110,12 +111,12 @@ func (ct *UserDevice) Unbind(c *gin.Context) {
 		return
 	}
 
-	token := service.AllService.UserService.TokenInfoById(f.Id)
-	if token.Id == 0 {
+	item := service.AllService.UserService.UserDeviceInfoById(f.Id)
+	if item.Id == 0 {
 		response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
 		return
 	}
-	if err := service.AllService.UserService.DeleteToken(token); err != nil {
+	if err := service.AllService.UserService.UnbindUserDevice(item); err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
 	}
@@ -132,7 +133,7 @@ func (ct *UserDevice) BatchUnbind(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError"))
 		return
 	}
-	if err := service.AllService.UserService.BatchDeleteUserToken(f.Ids); err != nil {
+	if err := service.AllService.UserService.BatchUnbindUserDevices(f.Ids); err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
 	}

@@ -23,7 +23,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const DatabaseVersion = 266
+const DatabaseVersion = 267
 
 // @title 管理系统API
 // @version 1.0
@@ -286,6 +286,9 @@ func DatabaseAutoUpdate() {
 		if v.Version < 266 {
 			db.Exec("update users set max_devices = 1 where max_devices <= 0")
 		}
+		if v.Version < 267 {
+			db.Exec("update users set max_devices = -1 where is_admin = 1 and max_devices in (0,1)")
+		}
 	}
 
 }
@@ -309,6 +312,7 @@ func Migrate(version uint) {
 		&model.AddressBookCollectionRule{},
 		&model.ServerCmd{},
 		&model.DeviceGroup{},
+		&model.UserDevice{},
 	)
 	if err != nil {
 		global.Logger.Error("migrate err :=>", err)
@@ -344,7 +348,7 @@ func Migrate(version uint) {
 			Status:   model.COMMON_STATUS_ENABLE,
 			IsAdmin:  &is_admin,
 			GroupId:  1,
-			MaxDevices: 1,
+			MaxDevices: -1,
 		}
 
 		// 生成随机密码

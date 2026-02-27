@@ -13,7 +13,7 @@ type UserForm struct {
 	Avatar   string           `json:"avatar"`
 	GroupId  uint             `json:"group_id" validate:"required"`
 	IsAdmin  *bool            `json:"is_admin" `
-	MaxDevices int            `json:"max_devices" validate:"omitempty,gte=1,lte=100"`
+	MaxDevices int            `json:"max_devices" validate:"omitempty,gte=-1,lte=10000,ne=0"`
 	Status   model.StatusCode `json:"status" validate:"required,gte=0"`
 	Remark   string           `json:"remark"`
 }

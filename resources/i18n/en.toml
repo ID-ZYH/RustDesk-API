@@ -163,3 +163,8 @@ other = "Register success, wait admin confirm."
 description = "Device limit exceeded."
 one = "Device limit exceeded, please unbind old devices first."
 other = "Device limit exceeded, please unbind old devices first."
+
+[DeviceIdentifierMissing]
+description = "Missing device identifier."
+one = "Missing device identifier."
+other = "Missing device identifier."

@@ -95,7 +95,8 @@ func (us *UserService) GenerateToken(u *model.User) string {
 
 // Login 登录
 func (us *UserService) Login(u *model.User, llog *model.LoginLog) (*model.UserToken, error) {
-	if err := us.CheckDeviceLimit(u, llog); err != nil {
+	u.MaxDevices = us.normalizeMaxDevices(u, u.MaxDevices)
+	if err := us.ensureUserDeviceBinding(u, llog); err != nil {
 		return nil, err
 	}
 	token := us.GenerateToken(u)
@@ -181,9 +182,7 @@ func (us *UserService) Create(u *model.User) error {
 		return errors.New("UsernameExists")
 	}
 	u.Username = us.formatUsername(u.Username)
-	if u.MaxDevices <= 0 {
-		u.MaxDevices = 1
-	}
+	u.MaxDevices = us.normalizeMaxDevices(u, u.MaxDevices)
 	var err error
 	u.Password, err = utils.EncryptPassword(u.Password)
 	if err != nil {
@@ -260,9 +259,7 @@ func (us *UserService) Delete(u *model.User) error {
 // Update 更新
 func (us *UserService) Update(u *model.User) error {
 	currentUser := us.InfoById(u.Id)
-	if u.MaxDevices <= 0 {
-		u.MaxDevices = 1
-	}
+	u.MaxDevices = us.normalizeMaxDevices(currentUser, u.MaxDevices)
 	// 如果当前用户是管理员并且 IsAdmin 不为空，进行检查
 	if us.IsAdmin(currentUser) {
 		adminCount := us.getAdminUserCount()
@@ -524,71 +521,6 @@ func (us *UserService) AutoRefreshAccessToken(ut *model.UserToken) {
 
 func (us *UserService) BatchDeleteUserToken(ids []uint) error {
 	return DB.Where("id in ?", ids).Delete(&model.UserToken{}).Error
-}
-
-func (us *UserService) CheckDeviceLimit(u *model.User, llog *model.LoginLog) error {
-	if u == nil || u.Id == 0 {
-		return errors.New("UserNotFound")
-	}
-	maxDevices := u.MaxDevices
-	if maxDevices <= 0 {
-		maxDevices = 1
-	}
-
-	activeTokens := make([]model.UserToken, 0)
-	err := DB.Where("user_id = ? and expired_at > ?", u.Id, time.Now().Unix()).Find(&activeTokens).Error
-	if err != nil {
-		return err
-	}
-
-	currentDevice := us.loginDeviceKey(llog)
-	if currentDevice != "" {
-		for _, token := range activeTokens {
-			if us.tokenDeviceKey(&token) == currentDevice {
-				return nil
-			}
-		}
-	}
-
-	devices := make(map[string]struct{})
-	for _, token := range activeTokens {
-		key := us.tokenDeviceKey(&token)
-		if key == "" {
-			key = "token:" + strconv.FormatUint(uint64(token.Id), 10)
-		}
-		devices[key] = struct{}{}
-	}
-
-	if len(devices) >= maxDevices {
-		return errors.New("DeviceLimitExceeded")
-	}
-	return nil
-}
-
-func (us *UserService) tokenDeviceKey(token *model.UserToken) string {
-	if token == nil {
-		return ""
-	}
-	if token.DeviceUuid != "" {
-		return "uuid:" + token.DeviceUuid
-	}
-	if token.DeviceId != "" {
-		return "device:" + token.DeviceId
-	}
-	return ""
-}
-
-func (us *UserService) loginDeviceKey(llog *model.LoginLog) string {
-	if llog == nil {
-		return ""
-	}
-	if llog.Uuid != "" {
-		return "uuid:" + llog.Uuid
-	}
-	if llog.DeviceId != "" {
-		return "device:" + llog.DeviceId
-	}
-	return ""
 }
 
 func (us *UserService) VerifyJWT(token string) (uint, error) {

@@ -2,12 +2,13 @@ package admin
 
 type UserDeviceListQuery struct {
 	PageQuery
-	UserId uint `form:"user_id"`
+	UserId   uint   `form:"user_id"`
+	Username string `form:"username"`
 }
 
 type UserDeviceSetLimitForm struct {
 	UserId     uint `json:"user_id" validate:"required,gt=0"`
-	MaxDevices int  `json:"max_devices" validate:"required,gte=1,lte=100"`
+	MaxDevices int  `json:"max_devices" validate:"required,gte=-1,lte=10000,ne=0"`
 }
 
 type UserDeviceUnbindForm struct {
