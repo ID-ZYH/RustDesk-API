@@ -19,11 +19,10 @@ import (
 	"github.com/lejianwen/rustdesk-api/v2/model"
 	"github.com/lejianwen/rustdesk-api/v2/service"
 	"github.com/lejianwen/rustdesk-api/v2/utils"
-	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"github.com/spf13/cobra"
 )
 
-const DatabaseVersion = 268
+const DatabaseVersion = 269
 
 // @title 管理系统API
 // @version 1.0
@@ -313,6 +312,10 @@ func DatabaseAutoUpdate() {
 				_ = db.Migrator().CreateIndex(&model.UserDevice{}, "idx_user_uuid")
 			}
 		}
+		if v.Version < 269 {
+			db.Model(&model.Group{}).Where("type = ?", model.GroupTypeDefault).Update("name", "默认组")
+			db.Model(&model.Group{}).Where("type = ?", model.GroupTypeShare).Update("name", "共享组")
+		}
 	}
 
 }
@@ -346,21 +349,14 @@ func Migrate(version uint) {
 	var vc int64
 	global.DB.Model(&model.Version{}).Count(&vc)
 	if vc == 1 {
-		localizer := global.Localizer("")
-		defaultGroup, _ := localizer.LocalizeMessage(&i18n.Message{
-			ID: "DefaultGroup",
-		})
 		group := &model.Group{
-			Name: defaultGroup,
+			Name: "默认组",
 			Type: model.GroupTypeDefault,
 		}
 		service.AllService.GroupService.Create(group)
 
-		shareGroup, _ := localizer.LocalizeMessage(&i18n.Message{
-			ID: "ShareGroup",
-		})
 		groupShare := &model.Group{
-			Name: shareGroup,
+			Name: "共享组",
 			Type: model.GroupTypeShare,
 		}
 		service.AllService.GroupService.Create(groupShare)
