@@ -58,7 +58,7 @@ func (us *UserService) ensureUserDeviceBinding(u *model.User, log *model.LoginLo
 			"device_id":     log.DeviceId,
 			"platform":      log.Platform,
 			"ip":            log.Ip,
-			"last_login_at": now.Unix(),
+			"last_login_at": custom_types.AutoTime(now),
 		}).Error
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -85,8 +85,8 @@ func (us *UserService) ensureUserDeviceBinding(u *model.User, log *model.LoginLo
 		Platform:     log.Platform,
 		Ip:           log.Ip,
 		Status:       model.UserDeviceStatusBound,
-		FirstLoginAt: custom_types.AutoTime(now.Unix()),
-		LastLoginAt:  custom_types.AutoTime(now.Unix()),
+		FirstLoginAt: custom_types.AutoTime(now),
+		LastLoginAt:  custom_types.AutoTime(now),
 	}).Error
 }
 
