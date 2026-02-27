@@ -43,7 +43,18 @@ func (us *UserService) normalizeLoginUuid(log *model.LoginLog) string {
 	return ""
 }
 
+func (us *UserService) shouldBindUserDevice(log *model.LoginLog) bool {
+	if log == nil {
+		return false
+	}
+	// Only real client(app) login should consume device quota.
+	return log.Client == model.LoginLogClientApp
+}
+
 func (us *UserService) ensureUserDeviceBinding(u *model.User, log *model.LoginLog) error {
+	if !us.shouldBindUserDevice(log) {
+		return nil
+	}
 	uuid := us.normalizeLoginUuid(log)
 	if uuid == "" {
 		return errors.New("DeviceIdentifierMissing")
