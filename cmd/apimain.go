@@ -120,6 +120,14 @@ func InitGlobal() {
 		Level:        global.Config.Logger.Level,
 		ReportCaller: global.Config.Logger.ReportCaller,
 	})
+	global.Logger.Infof(
+		"Boot Config: db=%s api=%s id-server=%s relay-server=%s key-configured=%t",
+		global.Config.Gorm.Type,
+		global.Config.Gin.ApiAddr,
+		global.Config.Rustdesk.IdServer,
+		global.Config.Rustdesk.RelayServer,
+		global.Config.Rustdesk.Key != "",
+	)
 
 	global.InitI18n()
 
@@ -256,13 +264,21 @@ func DatabaseAutoUpdate() {
 	}
 
 	if !db.Migrator().HasTable(&model.Version{}) {
+		global.Logger.Infof("Version table not found, run migration to %d", version)
 		Migrate(uint(version))
 	} else {
 		//查找最后一个version
 		var v model.Version
 		db.Last(&v)
 		if v.Version < uint(version) {
+			global.Logger.Infof("Database migration required: current=%d target=%d", v.Version, version)
 			Migrate(uint(version))
+		} else {
+			global.Logger.Infof(
+				"Database schema up-to-date: current=%d target=%d. Initial admin password will not be printed again. Use `apimain reset-admin-pwd <pwd>` to reset.",
+				v.Version,
+				version,
+			)
 		}
 
 		// 245迁移
@@ -360,8 +376,13 @@ func Migrate(version uint) {
 		}
 
 		// 生成随机密码
-		pwd := utils.RandomString(8)
-		global.Logger.Info("Admin Password Is: ", pwd)
+		pwd := os.Getenv("RUSTDESK_API_ADMIN_INIT_PASSWORD")
+		if pwd == "" {
+			pwd = utils.RandomString(8)
+			global.Logger.Info("Admin Password Is: ", pwd)
+		} else {
+			global.Logger.Info("Admin Password Is (from RUSTDESK_API_ADMIN_INIT_PASSWORD): ", pwd)
+		}
 		var err error
 		admin.Password, err = utils.EncryptPassword(pwd)
 		if err != nil {
