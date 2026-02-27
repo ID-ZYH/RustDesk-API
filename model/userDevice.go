@@ -11,8 +11,8 @@ const (
 
 type UserDevice struct {
 	IdModel
-	UserId       uint             `json:"user_id" gorm:"default:0;not null;index"`
-	Uuid         string           `json:"uuid" gorm:"default:'';not null;index:idx_user_uuid,unique"`
+	UserId       uint             `json:"user_id" gorm:"default:0;not null;index;uniqueIndex:idx_user_uuid"`
+	Uuid         string           `json:"uuid" gorm:"default:'';not null;uniqueIndex:idx_user_uuid"`
 	DeviceId     string           `json:"device_id" gorm:"default:'';not null;index"`
 	Platform     string           `json:"platform" gorm:"default:'';not null;"`
 	Ip           string           `json:"ip" gorm:"default:'';not null;"`

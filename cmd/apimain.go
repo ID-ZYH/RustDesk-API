@@ -23,7 +23,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const DatabaseVersion = 267
+const DatabaseVersion = 268
 
 // @title 管理系统API
 // @version 1.0
@@ -288,6 +288,14 @@ func DatabaseAutoUpdate() {
 		}
 		if v.Version < 267 {
 			db.Exec("update users set max_devices = -1 where is_admin = 1 and max_devices in (0,1)")
+		}
+		if v.Version < 268 {
+			if db.Migrator().HasTable(&model.UserDevice{}) {
+				if db.Migrator().HasIndex(&model.UserDevice{}, "idx_user_uuid") {
+					_ = db.Migrator().DropIndex(&model.UserDevice{}, "idx_user_uuid")
+				}
+				_ = db.Migrator().CreateIndex(&model.UserDevice{}, "idx_user_uuid")
+			}
 		}
 	}
 
