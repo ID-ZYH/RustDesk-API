@@ -241,6 +241,9 @@ func UserDeviceBind(rg *gin.RouterGroup) {
 	aR.POST("/setLimit", cont.SetLimit)
 	aR.POST("/unbind", cont.Unbind)
 	aR.POST("/batchUnbind", cont.BatchUnbind)
+	aR.POST("/delete", cont.Delete)
+	aR.POST("/batchDelete", cont.BatchDelete)
+	aR.POST("/clearUnbound", cont.ClearUnbound)
 }
 func ConfigBind(rg *gin.RouterGroup) {
 	aR := rg.Group("/config")

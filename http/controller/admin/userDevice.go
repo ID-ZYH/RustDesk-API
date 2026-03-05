@@ -139,3 +139,56 @@ func (ct *UserDevice) BatchUnbind(c *gin.Context) {
 	}
 	response.Success(c, nil)
 }
+
+func (ct *UserDevice) Delete(c *gin.Context) {
+	f := &admin.UserDeviceDeleteForm{}
+	if err := c.ShouldBindJSON(f); err != nil {
+		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
+		return
+	}
+	errList := global.Validator.ValidStruct(c, f)
+	if len(errList) > 0 {
+		response.Fail(c, 101, errList[0])
+		return
+	}
+	item := service.AllService.UserService.UserDeviceInfoById(f.Id)
+	if item.Id == 0 {
+		response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
+		return
+	}
+	if err := service.AllService.UserService.DeleteUserDevice(item); err != nil {
+		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
+		return
+	}
+	response.Success(c, nil)
+}
+
+func (ct *UserDevice) BatchDelete(c *gin.Context) {
+	f := &admin.UserDeviceBatchDeleteForm{}
+	if err := c.ShouldBindJSON(f); err != nil {
+		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
+		return
+	}
+	if len(f.Ids) == 0 {
+		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError"))
+		return
+	}
+	if err := service.AllService.UserService.BatchDeleteUserDevices(f.Ids); err != nil {
+		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
+		return
+	}
+	response.Success(c, nil)
+}
+
+func (ct *UserDevice) ClearUnbound(c *gin.Context) {
+	f := &admin.UserDeviceClearUnboundForm{}
+	if err := c.ShouldBindJSON(f); err != nil {
+		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
+		return
+	}
+	if err := service.AllService.UserService.ClearUnboundUserDevices(f.UserId); err != nil {
+		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
+		return
+	}
+	response.Success(c, nil)
+}

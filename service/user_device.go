@@ -154,3 +154,41 @@ func (us *UserService) BatchUnbindUserDevices(ids []uint) error {
 	}
 	return nil
 }
+
+func (us *UserService) DeleteUserDevice(item *model.UserDevice) error {
+	if item == nil || item.Id == 0 {
+		return errors.New("ItemNotFound")
+	}
+	if item.Status == model.UserDeviceStatusBound {
+		if err := DB.Where("user_id = ? and (device_uuid = ? or device_id = ?)", item.UserId, item.Uuid, strings.TrimPrefix(item.Uuid, "device:")).Delete(&model.UserToken{}).Error; err != nil {
+			return err
+		}
+	}
+	return DB.Delete(&model.UserDevice{}, item.Id).Error
+}
+
+func (us *UserService) BatchDeleteUserDevices(ids []uint) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	items := make([]model.UserDevice, 0)
+	if err := DB.Where("id in ?", ids).Find(&items).Error; err != nil {
+		return err
+	}
+	for _, it := range items {
+		if it.Status == model.UserDeviceStatusBound {
+			if err := DB.Where("user_id = ? and (device_uuid = ? or device_id = ?)", it.UserId, it.Uuid, strings.TrimPrefix(it.Uuid, "device:")).Delete(&model.UserToken{}).Error; err != nil {
+				return err
+			}
+		}
+	}
+	return DB.Where("id in ?", ids).Delete(&model.UserDevice{}).Error
+}
+
+func (us *UserService) ClearUnboundUserDevices(userId uint) error {
+	tx := DB.Model(&model.UserDevice{}).Where("status = ?", model.UserDeviceStatusUnbound)
+	if userId > 0 {
+		tx = tx.Where("user_id = ?", userId)
+	}
+	return tx.Delete(&model.UserDevice{}).Error
+}

@@ -18,3 +18,15 @@ type UserDeviceUnbindForm struct {
 type UserDeviceBatchUnbindForm struct {
 	Ids []uint `json:"ids" validate:"required"`
 }
+
+type UserDeviceDeleteForm struct {
+	Id uint `json:"id" validate:"required,gt=0"`
+}
+
+type UserDeviceBatchDeleteForm struct {
+	Ids []uint `json:"ids" validate:"required"`
+}
+
+type UserDeviceClearUnboundForm struct {
+	UserId uint `json:"user_id"`
+}
