@@ -318,7 +318,36 @@ func DatabaseAutoUpdate() {
 		}
 	}
 
+	ensureSchemaCompatibility()
 }
+
+func ensureSchemaCompatibility() {
+	db := global.DB
+	if db == nil {
+		return
+	}
+
+	ensureColumn(&model.LoginLog{}, "device_name")
+	ensureColumn(&model.UserDevice{}, "hostname")
+	ensureColumn(&model.UserToken{}, "device_uuid")
+	ensureColumn(&model.UserToken{}, "device_id")
+}
+
+func ensureColumn(table interface{}, column string) {
+	db := global.DB
+	if !db.Migrator().HasTable(table) {
+		return
+	}
+	if db.Migrator().HasColumn(table, column) {
+		return
+	}
+	if err := db.Migrator().AddColumn(table, column); err != nil {
+		global.Logger.Warnf("schema compatibility: failed to add column %s: %v", column, err)
+		return
+	}
+	global.Logger.Infof("schema compatibility: added missing column %s", column)
+}
+
 func Migrate(version uint) {
 	global.Logger.Info("Migrating....", version)
 	err := global.DB.AutoMigrate(
