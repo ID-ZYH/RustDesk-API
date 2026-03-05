@@ -69,6 +69,7 @@ func (us *UserService) ensureUserDeviceBinding(u *model.User, log *model.LoginLo
 		return DB.Model(device).Updates(map[string]interface{}{
 			"status":        model.UserDeviceStatusBound,
 			"device_id":     log.DeviceId,
+			"hostname":      log.DeviceName,
 			"platform":      log.Platform,
 			"ip":            log.Ip,
 			"last_login_at": custom_types.AutoTime(now),
@@ -95,6 +96,7 @@ func (us *UserService) ensureUserDeviceBinding(u *model.User, log *model.LoginLo
 		UserId:       u.Id,
 		Uuid:         uuid,
 		DeviceId:     log.DeviceId,
+		Hostname:     log.DeviceName,
 		Platform:     log.Platform,
 		Ip:           log.Ip,
 		Status:       model.UserDeviceStatusBound,

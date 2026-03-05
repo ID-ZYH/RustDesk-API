@@ -68,6 +68,7 @@ func (l *Login) Login(c *gin.Context) {
 		UserId:   u.Id,
 		Client:   clientType,
 		DeviceId: f.NormalizeDeviceId(),
+		DeviceName: strings.TrimSpace(f.DeviceInfo.Name),
 		Uuid:     f.NormalizeUuid(),
 		Ip:       c.ClientIP(),
 		Type:     model.LoginLogTypeAccount,

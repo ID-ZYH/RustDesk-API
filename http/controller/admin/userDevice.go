@@ -39,6 +39,10 @@ func (ct *UserDevice) List(c *gin.Context) {
 		u := userMap[item.UserId]
 		maxDevices := 1
 		username := ""
+		hostname := item.Hostname
+		if hostname == "" {
+			hostname = item.DeviceId
+		}
 		if u != nil {
 			maxDevices = u.MaxDevices
 			username = u.Username
@@ -50,6 +54,7 @@ func (ct *UserDevice) List(c *gin.Context) {
 			"max_devices":    maxDevices,
 			"uuid":           item.Uuid,
 			"device_id":      item.DeviceId,
+			"hostname":       hostname,
 			"platform":       item.Platform,
 			"ip":             item.Ip,
 			"status":         item.Status,

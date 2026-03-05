@@ -105,6 +105,7 @@ func (o *Oauth) OidcAuthQueryPre(c *gin.Context) (*model.User, *model.UserToken)
 		UserId:   u.Id,
 		Client:   clientType,
 		DeviceId: v.Id,
+		DeviceName: v.DeviceName,
 		Uuid:     v.Uuid,
 		Ip:       c.ClientIP(),
 		Type:     model.LoginLogTypeOauth,

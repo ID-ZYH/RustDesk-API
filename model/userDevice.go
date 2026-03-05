@@ -14,6 +14,7 @@ type UserDevice struct {
 	UserId       uint             `json:"user_id" gorm:"default:0;not null;index;uniqueIndex:idx_user_uuid"`
 	Uuid         string           `json:"uuid" gorm:"default:'';not null;uniqueIndex:idx_user_uuid"`
 	DeviceId     string           `json:"device_id" gorm:"default:'';not null;index"`
+	Hostname     string           `json:"hostname" gorm:"default:'';not null;index"`
 	Platform     string           `json:"platform" gorm:"default:'';not null;"`
 	Ip           string           `json:"ip" gorm:"default:'';not null;"`
 	Status       UserDeviceStatus `json:"status" gorm:"default:1;not null;index"`
