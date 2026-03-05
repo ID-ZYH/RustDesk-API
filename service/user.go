@@ -99,11 +99,12 @@ func (us *UserService) Login(u *model.User, llog *model.LoginLog) (*model.UserTo
 	if err := us.ensureUserDeviceBinding(u, llog); err != nil {
 		return nil, err
 	}
+	deviceUUID := us.normalizeLoginUuid(llog)
 	token := us.GenerateToken(u)
 	ut := &model.UserToken{
 		UserId:     u.Id,
 		Token:      token,
-		DeviceUuid: llog.Uuid,
+		DeviceUuid: deviceUUID,
 		DeviceId:   llog.DeviceId,
 		ExpiredAt:  us.UserTokenExpireTimestamp(),
 	}

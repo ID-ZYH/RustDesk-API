@@ -1,5 +1,7 @@
 package api
 
+import "strings"
+
 /*
 *
 
@@ -31,11 +33,38 @@ type DeviceInfoInLogin struct {
 type LoginForm struct {
 	AutoLogin  bool              `json:"autoLogin" label:"自动登录"`
 	DeviceInfo DeviceInfoInLogin `json:"deviceInfo" label:"设备信息"`
-	Id         string            `json:"id"  label:"id"`
-	Type       string            `json:"type"  label:"type"`
-	Uuid       string            `json:"uuid"  label:"uuid"`
+	Id         string            `json:"id" label:"id"`
+	MyId       string            `json:"my_id" label:"my_id"`
+	DeviceId   string            `json:"device_id" label:"device_id"`
+	Type       string            `json:"type" label:"type"`
+	Uuid       string            `json:"uuid" label:"uuid"`
+	DeviceUuid string            `json:"device_uuid" label:"device_uuid"`
 	Username   string            `json:"username" validate:"required,gte=2,lte=32" label:"用户名"`
 	Password   string            `json:"password,omitempty" validate:"gte=4,lte=32" label:"密码"`
+}
+
+func (f *LoginForm) NormalizeDeviceId() string {
+	if f == nil {
+		return ""
+	}
+	for _, v := range []string{f.Id, f.MyId, f.DeviceId} {
+		if s := strings.TrimSpace(v); s != "" {
+			return s
+		}
+	}
+	return ""
+}
+
+func (f *LoginForm) NormalizeUuid() string {
+	if f == nil {
+		return ""
+	}
+	for _, v := range []string{f.Uuid, f.DeviceUuid} {
+		if s := strings.TrimSpace(v); s != "" {
+			return s
+		}
+	}
+	return ""
 }
 
 type UserListQuery struct {

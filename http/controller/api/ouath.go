@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lejianwen/rustdesk-api/v2/global"
@@ -44,12 +45,12 @@ func (o *Oauth) OidcAuth(c *gin.Context) {
 
 	service.AllService.OauthService.SetOauthCache(state, &service.OauthCacheItem{
 		Action:     service.OauthActionTypeLogin,
-		Id:         f.Id,
+		Id:         f.NormalizeDeviceId(),
 		Op:         f.Op,
-		Uuid:       f.Uuid,
+		Uuid:       f.NormalizeUuid(),
 		DeviceName: f.DeviceInfo.Name,
 		DeviceOs:   f.DeviceInfo.Os,
-		DeviceType: f.DeviceInfo.Type,
+		DeviceType: strings.TrimSpace(f.DeviceInfo.Type),
 		Verifier:   verifier,
 		Nonce:      nonce,
 	}, 5*60)
@@ -96,9 +97,13 @@ func (o *Oauth) OidcAuthQueryPre(c *gin.Context) (*model.User, *model.UserToken)
 	service.AllService.OauthService.DeleteOauthCache(q.Code)
 
 	// 创建登录日志并生成用户令牌
+	clientType := strings.TrimSpace(v.DeviceType)
+	if clientType == "" {
+		clientType = model.LoginLogClientApp
+	}
 	ut, loginErr := service.AllService.UserService.Login(u, &model.LoginLog{
 		UserId:   u.Id,
-		Client:   v.DeviceType,
+		Client:   clientType,
 		DeviceId: v.Id,
 		Uuid:     v.Uuid,
 		Ip:       c.ClientIP(),
@@ -106,7 +111,12 @@ func (o *Oauth) OidcAuthQueryPre(c *gin.Context) (*model.User, *model.UserToken)
 		Platform: v.DeviceOs,
 	})
 	if loginErr != nil {
-		response.Error(c, response.TranslateMsg(c, loginErr.Error()))
+		msg := response.TranslateMsg(c, loginErr.Error())
+		if loginErr.Error() == "DeviceLimitExceeded" || loginErr.Error() == "DeviceIdentifierMissing" {
+			c.JSON(http.StatusOK, response.ErrorResponse{Error: msg})
+			return nil, nil
+		}
+		response.Error(c, msg)
 		return nil, nil
 	}
 

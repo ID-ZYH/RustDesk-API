@@ -47,8 +47,10 @@ func (us *UserService) shouldBindUserDevice(log *model.LoginLog) bool {
 	if log == nil {
 		return false
 	}
-	// Only real client(app) login should consume device quota.
-	return log.Client == model.LoginLogClientApp
+	client := strings.TrimSpace(strings.ToLower(log.Client))
+	// Web admin login should not consume device quota. Other client types
+	// (including empty/legacy app payloads) are treated as real devices.
+	return client != model.LoginLogClientWebAdmin
 }
 
 func (us *UserService) ensureUserDeviceBinding(u *model.User, log *model.LoginLog) error {
