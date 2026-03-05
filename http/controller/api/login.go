@@ -77,7 +77,10 @@ func (l *Login) Login(c *gin.Context) {
 	if loginErr != nil {
 		msg := response.TranslateMsg(c, loginErr.Error())
 		if loginErr.Error() == "DeviceLimitExceeded" || loginErr.Error() == "DeviceIdentifierMissing" {
-			c.JSON(http.StatusOK, response.ErrorResponse{Error: msg})
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error":   loginErr.Error(),
+				"message": msg,
+			})
 			return
 		}
 		response.Error(c, msg)
